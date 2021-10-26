@@ -1,3 +1,5 @@
+Download data: PRJNA772915. Go through the article to download published datasets. 
+
 #-- quality control filtering
 #__________________________________
 mkdir Trim_galore
@@ -64,6 +66,7 @@ do
 	sambamba view -h -t 30 -s $ratio -f bam --subsampling-seed=786 Bamfiles/$file\_ctrl.bam -o Bamfiles/$file\_ctrl.selected.bam 
 	samtools flagstat Bamfiles/$file\_ctrl.selected.bam  > Bamfiles/$file\_ctrl.selected.flagstat.txt
 	bamCoverage -b Bamfiles/$file\_expr.selected.bam -o ./bamcoverage/$file\_expr.bw -bl /home/sheikh/Databases/EncodeBlackListedRegions/hg38-blacklist.v2.bed -p 30 --effectiveGenomeSize 2913022398
+	
 done 
 
 
@@ -112,7 +115,7 @@ do
 	s_ex=$(fgrep read1 SpikeIn/$file\_expr.flagstat.txt  | cut -d " " -f1)
 	s_ct=$(fgrep read1 SpikeIn/$file\_ctrl.flagstat.txt  | cut -d " " -f1)
 	norm=$(echo "$h_ct*(($s_ct/$h_ct)/($s_ex/$h_ex))" | bc -l)
-	makeTagDirectory TagDir/$file\_ctrl Bamfiles/$file\_ctrl.selected.bam -totalReads $norm &
+	makeTagDirectory TagDir/$file\_ctrl Bamfiles/$file\_ctrl.selected.bam -totalReads $norm 
 
 done
 
