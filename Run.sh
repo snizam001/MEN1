@@ -1,25 +1,3 @@
-#-- program/Tools
-#__________________________________
-trim_galore version 0.6.3
-bowtie2 version 2.3.4.1
-samtools version 1.9
-HOMER 
-bedtools 
-ann.R
-
-#-- datasets
-#__________________________________
-Bowtie2 index of GRCh38.p13 (Human) and BDGP5.75 (Drosophilla or SpikeIn)
-Peak files of the histone-modifications
-Bamfiles of the histone-modifications
-bamcoverage file of histones and atac
-encode-blacklisted regions
-Peaks/h3k4me3.ENCFF862LUQ.replicatedNarrowPeaks.bed
-cp /media/sheikh/Swift0/CutAndRun/Publication_hg38/Encode/h3k4me1/ENCFF360CQR.replicatedNarrowPeaks.bed h3k4me1.bed 
-cp /media/sheikh/Swift0/CutAndRun/Publication_hg38/Encode/h3k27ac/ENCFF392EDT.replicatedNarrowPeaks.bed h3k27ac.bed 
-cp /media/sheikh/Swift0/CutAndRun/Publication_hg38/Encode/h3k9ac/ENCFF510LKP.replicatedNarrowPeaks.bed h3k9ac.bed 
-motif files
-
 #-- quality control filtering
 #__________________________________
 mkdir Trim_galore
@@ -32,7 +10,7 @@ do
 
 done 
 
-#-- alignment and coverage calculation
+#-- alignment 
 #__________________________________
 mkdir Bamfiles
 mkdir SpikeIn
@@ -59,6 +37,35 @@ do
 	samtools flagstat SpikeIn/$file\_ctrl.bam > SpikeIn/$file\_ctrl.flagstat.txt 
 	
 done 
+
+#-- calculation of the coverage
+#__________________________________________
+mkdir bamcoverage
+
+for file in MLL1 JunD PolII-RPB1 
+do
+
+bamCoverage -b Bamfiles/$file\_expr.bam -o ./bamcoverage/$file\_expr.bw -bl /home/sheikh/Databases/EncodeBlackListedRegions/hg38-blacklist.v2.bed -p 30 --effectiveGenomeSize 2913022398
+
+done 
+
+#-- Selection of equal number of reads and coverage
+#__________________________________________________
+#- 
+min=$(grep read1 Bamfiles/MEN1*txt  | grep _expr | awk -F ":" '{print $2}'  | awk '{print $1}'  | sort -nk1  | head -n1 )
+
+for file in MEN1-E408Q MEN1-R52G MEN1-E255K MEN1-E359K MEN1
+do
+	c=$(grep read1 Bamfiles/$file\_expr.flagstat.txt | awk '{print $1}' )
+	ratio=$(echo "$min/$c" | bc -l)
+	echo $ratio
+	sambamba view -h -t 30 -s $ratio -f bam --subsampling-seed=786 Bamfiles/$file\_expr.bam -o Bamfiles/$file\_expr.selected.bam
+	samtools flagstat Bamfiles/$file\_expr.selected.bam  > Bamfiles/$file\_expr.selected.flagstat.txt
+	sambamba view -h -t 30 -s $ratio -f bam --subsampling-seed=786 Bamfiles/$file\_ctrl.bam -o Bamfiles/$file\_ctrl.selected.bam 
+	samtools flagstat Bamfiles/$file\_ctrl.selected.bam  > Bamfiles/$file\_ctrl.selected.flagstat.txt
+	bamCoverage -b Bamfiles/$file\_expr.selected.bam -o ./bamcoverage/$file\_expr.bw -bl /home/sheikh/Databases/EncodeBlackListedRegions/hg38-blacklist.v2.bed -p 30 --effectiveGenomeSize 2913022398
+done 
+
 
 #--Correlation plot
 #__________________________________
@@ -114,7 +121,7 @@ done
 mkdir Peaks
 blackList="/home/sheikh/Databases/EncodeBlackListedRegions/hg38-blacklist.v2.bed"
 
-for file in MLL1 JunD PolII-RPB1
+for file in MLL1  PolII-RPB1
 do
 
 	findPeaks TagDir/$file\_expr -i TagDir/$file\_ctrl -style histone -C 0 -o Peaks/$file\_broad 
@@ -127,6 +134,13 @@ do
 
 done
 
+for file in JunD
+do
+
+	findPeaks TagDir/$file\_expr -i TagDir/$file\_ctrl -style factor -C 0 -o Peaks/$file\_narrow
+	pos2bed.pl -o Peaks/$file\_broad.bed Peaks/$file\_broad
+	intersectBed -v -a Peaks/$file\_narrow.bed -b $blackList | grep ^chr | grep -v chrM > Peaks/$file\_narrow.Clean.bed
+done 
 
 #-- Overlapping peaks 
 #__________________________________
@@ -482,27 +496,5 @@ dev.off()
 
 
 
-#-- calculation of the coverage
-mkdir bamcoverage
 
-for file in MLL1 JunD PolII-RPB1 
-do
 
-bamCoverage -b Bamfiles/$file\_expr.bam -o ./bamcoverage/$file\_expr.bw -bl /home/sheikh/Databases/EncodeBlackListedRegions/hg38-blacklist.v2.bed -p 30 --effectiveGenomeSize 2913022398
-
-done 
-
-#- 
-min=$(grep read1 Bamfiles/MEN1*txt  | grep _expr | awk -F ":" '{print $2}'  | awk '{print $1}'  | sort -nk1  | head -n1 )
-
-for file in MEN1-E408Q MEN1-R52G MEN1-E255K MEN1-E359K MEN1
-do
-	c=$(grep read1 Bamfiles/$file\_expr.flagstat.txt | awk '{print $1}' )
-	ratio=$(echo "$min/$c" | bc -l)
-	echo $ratio
-	sambamba view -h -t 30 -s $ratio -f bam --subsampling-seed=786 Bamfiles/$file\_expr.bam -o Bamfiles/$file\_expr.selected.bam
-	samtools flagstat Bamfiles/$file\_expr.selected.bam  > Bamfiles/$file\_expr.selected.flagstat.txt
-	sambamba view -h -t 30 -s $ratio -f bam --subsampling-seed=786 Bamfiles/$file\_ctrl.bam -o Bamfiles/$file\_ctrl.selected.bam 
-	samtools flagstat Bamfiles/$file\_ctrl.selected.bam  > Bamfiles/$file\_ctrl.selected.flagstat.txt
-	bamCoverage -b Bamfiles/$file\_expr.selected.bam -o ./bamcoverage/$file\_expr.bw -bl /home/sheikh/Databases/EncodeBlackListedRegions/hg38-blacklist.v2.bed -p 30 --effectiveGenomeSize 2913022398
-done 
