@@ -124,7 +124,7 @@ done
 mkdir Peaks
 blackList="/home/sheikh/Databases/EncodeBlackListedRegions/hg38-blacklist.v2.bed"
 
-for file in MLL1  PolII-RPB1
+for file in MLL1 MEN1 PolII-RPB1
 do
 
 	findPeaks TagDir/$file\_expr -i TagDir/$file\_ctrl -style histone -C 0 -o Peaks/$file\_broad 
