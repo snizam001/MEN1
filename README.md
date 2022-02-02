@@ -1,3 +1,2 @@
-# Proteomic and cistromic analysis of MEN1 gene
+# Proteomic and cistromic analysis
 
-Parameters and command used for the data-analysis
