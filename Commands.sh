@@ -1,4 +1,4 @@
-Download data: PRJNA772915. Go through the article to download published datasets. 
+Go through the article to download published datasets. 
 
 #-- quality control filtering
 #__________________________________
